@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using TopArticles.Models;
+using TopArticles.Application;
+using TopArticles.Application.Interfaces;
+using TopArticles.CustomException;
 using TopArticles.Services;
+using TopArticles.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IHypnoService, HypnoService>();
+builder.Services.AddScoped<IArticleApplication, ArticleApplication>();
+
+builder.Services.AddHttpClient("hypnobox", h =>
+{
+    h.BaseAddress = new Uri($"http://hypnocore.api.hypnobox.com.br");
+    h.Timeout = TimeSpan.FromSeconds(20);
+});
+
 
 var app = builder.Build();
 
@@ -21,31 +31,24 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/api/toparticles", async ([FromQuery] int top) =>
+app.MapGet("/api/toparticles/{top}", async (int top, IArticleApplication articleApplication) =>
 {
-    //Injeção de dependencia 
-    HypnoService hypnoService = new HypnoService();
-
-    var article = await hypnoService.GetArticle(1);
-    var allArticles = article.Data;
-
-    //Deixar as chamadas assincronas, e paralelas 
-    for (int i = 2; i <= article.TotalPages; i++)
+    try
     {
-       var result = await hypnoService.GetArticle(i);
-       allArticles.AddRange(result.Data);
+        var topArticles = await articleApplication.GetTopArticles(top);
 
+        return Results.Ok(topArticles);
     }
-
-    //Colocar toda lógica em uma Application 
-    var filteredArticles = allArticles.Where(a => !(string.IsNullOrEmpty(a.Title) && string.IsNullOrEmpty(a.StoryTitle)));
-
-    filteredArticles = allArticles.Where(a => a.NumComments != null);
-
-    var orderedArticles = filteredArticles.OrderByDescending(a => a.NumComments).ThenBy(a => a.ArticleTitle, StringComparer.OrdinalIgnoreCase);
-
-    return orderedArticles.Select(o =>new { o.ArticleTitle, o.NumComments }).Take(top);
-
+    catch (BusinessRuleException ex)
+    {
+        //LOG
+        return Results.Problem(ex.Message);
+    }
+    catch (Exception ex)
+    {
+        //LOG
+        return Results.Problem("Ocorreu um erro inesperado, tenta novamente!");
+    }
 })
 .WithName("TopArticles")
 .WithOpenApi();

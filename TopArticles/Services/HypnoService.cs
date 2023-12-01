@@ -1,19 +1,28 @@
 ﻿using Newtonsoft.Json;
 using TopArticles.Models;
+using TopArticles.Services.Interfaces;
 
 namespace TopArticles.Services
 {
-    public class HypnoService
+    public class HypnoService : IHypnoService
     {
-        public async Task<Article> GetArticle(int page)
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly HttpClient _client;
+
+        public HypnoService(IHttpClientFactory clientFactory)
         {
-            //HttpFactory
-            HttpClient httpClient = new HttpClient();
-            httpClient.BaseAddress = new Uri($"http://hypnocore.api.hypnobox.com.br");
+            _clientFactory = clientFactory;
+            _client = _clientFactory.CreateClient("hypnobox");
+        }
+        public async Task<Article?> GetArticlesByPage(int page)
+        {
+          
+            var response = await _client.GetAsync($"/teste/api/articles?page={page}");
 
-            var response = await httpClient.GetAsync($"/teste/api/articles?page={page}");
-
-            return JsonConvert.DeserializeObject<Article>(response.Content.ReadAsStringAsync().Result);
+            if (response.IsSuccessStatusCode)
+                return JsonConvert.DeserializeObject<Article?>(await response.Content.ReadAsStringAsync());
+            else
+                return null;
         }
     }
 }

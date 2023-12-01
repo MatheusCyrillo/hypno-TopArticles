@@ -1,9 +1,9 @@
 ﻿namespace TopArticles.Models
 {
-    public class TopArticles
+    public class TopArticlesResult
     {
         public string Title { get; set; }
-        public int NumComments { get; set; }
+        public long? NumComments { get; set; }
 
     }
 }

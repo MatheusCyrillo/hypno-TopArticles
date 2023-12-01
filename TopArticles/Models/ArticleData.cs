@@ -17,7 +17,6 @@ namespace TopArticles.Models
         public long? NumComments { get; set; }
 
         [JsonProperty("story_id")]
-        //[JsonConverter(typeof(ParseStringConverter))]
         public long? StoryId { get; set; }
 
         [JsonProperty("story_title")]
@@ -27,7 +26,6 @@ namespace TopArticles.Models
         public Uri StoryUrl { get; set; }
 
         [JsonProperty("parent_id")]
-        //[JsonConverter(typeof(ParseStringConverter))]
         public long? ParentId { get; set; }
 
         [JsonProperty("created_at")]
